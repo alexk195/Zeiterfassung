@@ -3,13 +3,16 @@
 
 #include <QFile>
 #include <sstream>
+#include <QDesktopServices>
+#include <QUrl>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    timer.setInterval(1000*60); // call timer every minute
+
+    timer.setInterval(1000*timerSeconds); // call timer every minute
     timer.start();
     this->connect(&timer,SIGNAL(timeout()),this,SLOT(on_timer()));
 
@@ -28,6 +31,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     // set arrive time
     arrive();
+
+    lastActiveTime = arriveTime;
 
     // call once at start up to update time
     on_timer();
@@ -48,10 +53,29 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_timer()
 {
-    uint64_t mins = std::chrono::duration_cast<std::chrono::minutes>(myclock::now() - this->arriveTime).count();
-    QString s = QString("%1:%2").arg(uint(mins/60),2,10,QChar('0')).arg(uint(mins%60),2,10,QChar('0'));
+    auto currentTime = myclock::now();
+    auto secondsSinceLastTimer = std::chrono::duration_cast<std::chrono::seconds>(currentTime - lastActiveTime).count();
+
+    if (secondsSinceLastTimer > timerSeconds*2)
+    {
+        // hibernation/sleep occured
+        writeEvent(lastActiveTime,filename,"LEAVE (app hibernation)");
+        writeEvent(currentTime,filename,"ARRIVE (from hibernation)");
+
+        minutesHibernation += std::chrono::duration_cast<std::chrono::minutes>(currentTime - lastActiveTime).count();
+    }
+
+    uint64_t minsActive = std::chrono::duration_cast<std::chrono::minutes>(currentTime - arriveTime).count();
+    minsActive -= minutesHibernation;
+
+    // update active time
+    QString s = QString("%1:%2").arg(uint(minsActive/60),2,10,QChar('0')).arg(uint(minsActive%60),2,10,QChar('0'));
     ui->laTime->setText(s);
-    writeEvent(myclock::now(),this->filenameTmp,"LEAVE (app crashed)",false);
+
+    // store into tmp file current time for crash recovery
+    writeEvent(currentTime,filenameTmp,"LEAVE (app crashed)",false);
+
+    lastActiveTime = currentTime;
 }
 
 
@@ -96,4 +120,14 @@ std::string MainWindow::timeToStr(mytime_point t)
     std::stringstream ss;
     ss << std::put_time(&tm, "%d.%m.%Y,%H:%M:%S");
     return ss.str();
+}
+
+void MainWindow::on_bnAbout_clicked()
+{
+    QDesktopServices::openUrl(QUrl("https://github.com/alexk195/Zeiterfassung"));
+}
+
+void MainWindow::on_bnOpenLog_clicked()
+{
+    QDesktopServices::openUrl(QUrl(QString(this->filename.c_str())));
 }

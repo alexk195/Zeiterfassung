@@ -28,13 +28,22 @@ private slots:
     void on_bnLeave_clicked();
 
     void on_timer();
+    void on_bnAbout_clicked();
+
+    void on_bnOpenLog_clicked();
+
 private:
+    const std::string filename="Timelog.txt";
+    const std::string filenameTmp = "Timelog_tmp.txt";
+    const uint32_t timerSeconds = 60;
+
+    uint32_t minutesHibernation = 0;
+
     Ui::MainWindow *ui;
     mytime_point arriveTime;
-    QTimer timer;
+    mytime_point lastActiveTime;
 
-    std::string filename="Timelog.txt";
-    std::string filenameTmp = "Timelog_tmp.txt";
+    QTimer timer;
 
     static std::string timeToStr(mytime_point t);
     void writeEvent(mytime_point t, const std::string & fname, const std::string & s, bool append=true);
