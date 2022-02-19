@@ -40,7 +40,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
-    writeEvent(myclock::now(),filename,"LEAVE (app terminated)");
+    writeEvent(myclock::now(),filename,"LEAVE (app closed)");
     timer.stop();
 
     // gracefull shutdown -> delete tmp
@@ -73,7 +73,7 @@ void MainWindow::on_timer()
     ui->laTime->setText(s);
 
     // store into tmp file current time for crash recovery
-    writeEvent(currentTime,filenameTmp,"LEAVE (app crashed)",false);
+    writeEvent(currentTime,filenameTmp,"LEAVE (app forcefully terminated)",false);
 
     lastActiveTime = currentTime;
 }
